@@ -1,9 +1,9 @@
 {
     "name": "npm-sentinel",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "A CLI tool to detect supply chain attacks in npm packages by analyzing lifecycle scripts and registry metadata.",
     "bin": {
-        "npm-sentinel": "./bin/npm-sentinel.js"
+        "npm-sentinel": "./src/cli.js"
     },
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"

