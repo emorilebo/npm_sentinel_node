@@ -3,17 +3,19 @@
     "version": "2.0.0",
     "description": "A CLI tool to detect supply chain attacks in npm packages by analyzing lifecycle scripts and registry metadata.",
     "bin": {
-        "npm-sentinel": "./src/cli.js"
+        "npm-sentinel": "./dist/cli.js"
     },
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "rimraf dist && tsc",
+        "prepublishOnly": "npm run build",
+        "start": "ts-node src/cli.ts"
     },
     "keywords": [
         "security",
         "npm",
         "supply-chain",
-        "malware",
-        "analysis"
+        "malware"
     ],
     "author": "Godfrey Lebo <emorylebo@gmail.com>",
     "license": "MIT",
@@ -21,5 +23,9 @@
         "axios": "^1.6.0",
         "chalk": "^4.1.2",
         "commander": "^11.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.1",
+        "typescript": "^5.9.3"
     }
 }
