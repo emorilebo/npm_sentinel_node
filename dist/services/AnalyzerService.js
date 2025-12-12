@@ -96,8 +96,35 @@ class AnalyzerService {
         };
     }
     analyzeScript(scriptName, command, vulns) {
-        // Decode base64 if present to find hidden commands?
-        // Basic pattern matching first
+        // 1. Direct Pattern Matching
+        this.runPatternChecks(scriptName, command, vulns);
+        // 2. Base64 Decoding & Deep Analysis
+        const base64Strings = this.extractBase64Strings(command);
+        for (const encoded of base64Strings) {
+            try {
+                const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+                // Heuristic: If decoded contains mostly printable characters, analyze it
+                // and if it triggers patterns, flag it as hidden malware
+                if (this.isReadable(decoded)) {
+                    // Run checks on decoded content
+                    const hiddenVulns = [];
+                    this.runPatternChecks(scriptName, decoded, hiddenVulns);
+                    if (hiddenVulns.length > 0) {
+                        vulns.push({
+                            type: 'suspect-script',
+                            severity: 'critical',
+                            description: `Obfuscated (Base64) payload detected: "${decoded.substring(0, 50)}..." containing suspicious commands.`,
+                            location: `scripts.${scriptName} (decoded)`
+                        });
+                    }
+                }
+            }
+            catch (e) {
+                // Ignore invalid base64
+            }
+        }
+    }
+    runPatternChecks(scriptName, command, vulns) {
         for (const rule of this.suspiciousPatterns) {
             const regex = new RegExp(rule.pattern.startsWith("\\") ? rule.pattern : rule.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
             if (regex.test(command)) {
@@ -109,6 +136,19 @@ class AnalyzerService {
                 });
             }
         }
+    }
+    extractBase64Strings(text) {
+        // Matches strings that look like base64 (A-Z, a-z, 0-9, +, /, =) length >= 20
+        // This is a rough heuristic to find potential payloads
+        const base64Regex = /([A-Za-z0-9+/]{20,}={0,2})/g;
+        const matches = text.match(base64Regex);
+        return matches || [];
+    }
+    isReadable(text) {
+        // Check if > 90% of chars are printable ASCII
+        // This avoids flagging binary blobs as scripts
+        const printable = text.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+        return printable.length / text.length > 0.9;
     }
 }
 exports.AnalyzerService = AnalyzerService;
